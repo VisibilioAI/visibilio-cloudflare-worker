@@ -36,6 +36,29 @@ jobs:
       - name: Unit tests
         run: npm test
 
+  integration:
+    # Runs the workerd runtime (via `wrangler pages dev`) against the real
+    # functions/ tree and exercises every endpoint via HTTP. Catches issues
+    # the Node-based unit tests cannot — module loading, KV semantics, edge
+    # runtime API differences, Wrangler bundling.
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Integration tests (workerd via wrangler pages dev)
+        run: npm run test:integration
+
   schema-drift:
     runs-on: ubuntu-latest
     # Drift gate runs only when @visibilio/shared-types is installed
