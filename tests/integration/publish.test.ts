@@ -64,6 +64,24 @@ describe('POST /api/content/ — publish flow (workerd)', () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it('accepts payload with optional extensions field (schema v1.1.0)', async () => {
+    const slug = `pub-extensions-${Date.now()}`;
+    const res = await fetch(`${BASE()}/api/content/`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        ...validArticle,
+        slug,
+        extensions: {
+          premium: true,
+          author_bio: 'Site-specific author bio',
+          custom_fields: { layout: 'wide', sidebar: false },
+        },
+      }),
+    });
+    expect(res.status).toBe(201);
+  });
 });
 
 describe('POST /api/content/?dry_run=true — validate only', () => {

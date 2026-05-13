@@ -6,18 +6,32 @@ The version reported by `GET /api/content/version` matches the latest tag.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-13
+
+### Added
+
+- **`GET /api/content/tags`** — public endpoint listing tags the site uses. Default implementation returns `[]`. Customers with a fixed taxonomy can replace the body with a hardcoded list. The Visibilio gateway reads this on channel creation and pre-populates `default_tags` (mirrors `/catalog` behavior for categories).
+- **`extensions` field** in the article payload (schema v1.1.0) — optional object with arbitrary site-specific fields (premium flags, custom layout hints, author bio overrides). Worker stores the value verbatim; the gateway and template do not interpret keys. Backwards-compatible: legacy payloads without `extensions` still validate.
+- **Capability flags** in `GET /api/content/version` response — `{ capabilities: ["dry_run", "tags_discovery"] }`. Lets the gateway feature-detect template behavior beyond version-string heuristics.
+
 ### Changed
+
+- `template_version` default bumped `1.0.0` → `1.1.0`.
+
+## [1.0.0] - 2026-05-13 (re-released as part of this changelog reorg)
+
+### Changed (from earlier unreleased)
 
 - Validator switched from AJV to `@cfworker/json-schema` — AJV compiles validators with `new Function()` which the Cloudflare Workers runtime blocks ("Code generation from strings disallowed"). `@cfworker/json-schema` is a pure-JS Draft 2020-12 interpreter built for the edge runtime. Same external behavior, no codegen.
 - `wrangler` bumped to v4 — v3 bundler errored on the standard `import ... with { type: 'json' }` attribute syntax used by the validator.
 - Unit-test glob narrowed to `tests/unit/**/*.test.ts` so the default `npm test` does not pick up integration tests.
 
-### Added
+### Added (from earlier unreleased)
 
 - Integration test suite (`npm run test:integration`) that boots `wrangler pages dev` and exercises every endpoint over HTTP inside the real workerd runtime. KV is emulated locally by miniflare. 13 tests cover publish, dry-run, delete, schema/version discovery, and auth.
 - New CI job `integration` running the workerd suite on every PR.
 
-## [1.0.0] - 2026-05-13
+## [1.0.0-initial] - 2026-05-13
 
 ### Added
 
@@ -30,5 +44,6 @@ The version reported by `GET /api/content/version` matches the latest tag.
 - `npm run vendor:schema` to re-vendor, `npm run vendor:check` as CI drift gate.
 - GitHub Actions CI: typecheck, lint, unit tests, schema drift gate.
 
-[Unreleased]: https://github.com/VisibilioAI/visibilio-cloudflare-worker/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/VisibilioAI/visibilio-cloudflare-worker/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/VisibilioAI/visibilio-cloudflare-worker/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/VisibilioAI/visibilio-cloudflare-worker/releases/tag/v1.0.0

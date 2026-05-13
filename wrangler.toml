@@ -23,4 +23,4 @@ pages_build_output_dir = "public"
 
 [vars]
 # Non-secret variables. Override per environment in Pages dashboard.
-TEMPLATE_VERSION = "1.0.0"
+TEMPLATE_VERSION = "1.1.0"
