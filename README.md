@@ -105,9 +105,22 @@ npm run typecheck       # tsc strict, no emit
 npm run lint            # eslint over functions/, tests/, scripts/
 ```
 
-The integration suite spins up `wrangler pages dev` once, then exercises every endpoint over HTTP against the actual Cloudflare Workers runtime (workerd) with miniflare-emulated KV. This catches issues unit tests cannot — Node-only API usage, Pages Functions routing, module loading semantics, Wrangler bundling, KV behavior.
+The repo runs three CI tiers:
 
-Both suites run in CI on every PR.
+| Tier | Runs in | Catches | Setup |
+|---|---|---|---|
+| 1. Unit | Node, vitest | Logic bugs in handlers, validator, storage | none |
+| 2. Integration | `workerd` via `wrangler pages dev`, miniflare-emulated KV | Node-only API usage, Pages routing, module-loading semantics, Wrangler bundling | none |
+| 3. Preview deploy + smoke | Real Cloudflare Pages | Bundle errors at deploy, real KV binding, edge propagation, DNS | secrets (see below) |
+
+Tier 3 is gated on two repository secrets:
+
+- `CLOUDFLARE_API_TOKEN` — token with `Pages:Edit` permission, scoped to a CI project
+- `CLOUDFLARE_ACCOUNT_ID`
+
+Plus a one-time setup: create a CF Pages project named `visibilio-cloudflare-worker-ci` (or change the name in `.github/workflows/deploy-preview.yml`). The CI job deploys each PR to a branch-named preview URL on that project; the integration suite then runs against the live URL with `WORKER_BASE_URL` overridden.
+
+If the secrets are missing, Tier 3 cleanly skips with a workflow notice — Tiers 1 + 2 still run for every PR.
 
 Run `npm run dev` to bring up `wrangler pages dev` locally; set `API_KEY` in a `.dev.vars` file (gitignored) before testing publish.
 

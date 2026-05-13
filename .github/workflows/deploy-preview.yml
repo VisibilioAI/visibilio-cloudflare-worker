@@ -1,0 +1,130 @@
+name: Deploy preview + smoke
+
+# Tier 3 testing — deploys this PR's worker code to a real Cloudflare Pages
+# preview environment and runs the integration suite against it. Catches
+# anything Tier 1 (workerd via wrangler pages dev) can miss:
+#
+#   - Wrangler bundle errors that only surface at deploy time
+#   - Cloudflare Pages routing / build pipeline issues
+#   - Real KV namespace binding (vs miniflare emulation)
+#   - Edge propagation + DNS for *.pages.dev
+#
+# The job is gated on two repository secrets:
+#   - CLOUDFLARE_API_TOKEN   (Pages:Edit permission, scoped to the CI project)
+#   - CLOUDFLARE_ACCOUNT_ID
+#
+# If either is missing, the job skips with a friendly note in its log — it
+# does NOT block PRs. This means contributors without secret access (e.g.
+# forks) still get green CI from the unit + workerd integration jobs.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      have_secrets: ${{ steps.gate.outputs.have_secrets }}
+    steps:
+      - name: Check Cloudflare secrets are configured
+        id: gate
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CF_TOKEN" ] && [ -n "$CF_ACCOUNT" ]; then
+            echo "have_secrets=true" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare secrets present — preview deploy will run."
+          else
+            echo "have_secrets=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Tier 3 skipped::CLOUDFLARE_API_TOKEN and/or CLOUDFLARE_ACCOUNT_ID not configured; preview deploy + smoke job skipped."
+          fi
+
+  deploy-smoke:
+    needs: preflight
+    if: needs.preflight.outputs.have_secrets == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CI_PROJECT_NAME: visibilio-cloudflare-worker-ci
+      # Per-run API key — random enough that concurrent CI runs don't collide.
+      # Picked at workflow start, used both as the worker secret AND in the
+      # smoke tests' Bearer header.
+      CI_API_KEY: ci-${{ github.run_id }}-${{ github.run_attempt }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Derive deploy branch name
+        id: branch
+        run: |
+          # Use a deterministic per-commit name so preview URLs are stable
+          # within a run. Cloudflare Pages truncates to 28 chars + slugifies.
+          NAME="ci-${GITHUB_SHA:0:7}"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Set API_KEY secret on the CI Pages project
+        # Idempotent: `secret put` updates if the secret already exists.
+        # Pipes the value as stdin so it never appears in run logs.
+        run: |
+          printf '%s' "$CI_API_KEY" | npx wrangler pages secret put API_KEY \
+            --project-name "$CI_PROJECT_NAME"
+
+      - name: Deploy preview
+        id: deploy
+        run: |
+          OUTPUT=$(npx wrangler pages deploy . \
+            --project-name "$CI_PROJECT_NAME" \
+            --branch "${{ steps.branch.outputs.name }}" \
+            --commit-dirty=true)
+          echo "$OUTPUT"
+          # Extract the deployment URL — wrangler logs it as "https://...pages.dev"
+          URL=$(echo "$OUTPUT" | grep -oE 'https://[a-z0-9-]+\.pages\.dev' | head -n1)
+          if [ -z "$URL" ]; then
+            echo "::error title=Deploy failed::Could not extract deployment URL from wrangler output."
+            exit 1
+          fi
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Preview deploy: $URL"
+
+      - name: Wait for edge propagation
+        run: |
+          URL="${{ steps.deploy.outputs.url }}/api/content/version"
+          echo "Polling $URL until 200..."
+          for i in $(seq 1 60); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "Edge ready (took ${i}s)"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error title=Edge not ready::Worker did not respond 200 within 60s"
+          exit 1
+
+      - name: Run integration suite against preview deployment
+        env:
+          WORKER_BASE_URL: ${{ steps.deploy.outputs.url }}
+          WORKER_API_KEY: ${{ env.CI_API_KEY }}
+        run: npm run test:integration
+
+      - name: Surface preview URL on success
+        if: success()
+        run: echo "::notice title=Preview deployed::${{ steps.deploy.outputs.url }}"

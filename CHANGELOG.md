@@ -6,6 +6,11 @@ The version reported by `GET /api/content/version` matches the latest tag.
 
 ## [Unreleased]
 
+### Added
+
+- **Tier 3 CI: real Cloudflare Pages preview deploy + smoke**. New workflow `.github/workflows/deploy-preview.yml` deploys each PR to a `*.pages.dev` URL on the `visibilio-cloudflare-worker-ci` Pages project, then runs `npm run test:integration` against the live URL. Catches the small class of issues that workerd-via-`wrangler-pages-dev` misses: bundle errors at deploy time, real KV namespace binding, edge propagation, DNS. Gated on `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` repository secrets — if absent the job cleanly skips, so contributors without secret access (forks) still get green CI.
+- **`tests/integration/setup.ts` external mode**. When `WORKER_BASE_URL` is set in the environment, the globalSetup skips `wrangler pages dev` and runs the existing suite against the provided URL — used by Tier 3 but also handy for local point-tests against a staging deployment.
+
 ## [1.1.0] - 2026-05-13
 
 ### Added
