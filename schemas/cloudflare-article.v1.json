@@ -1,0 +1,309 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://visibilio.ai/schemas/cloudflare-article.v1.json",
+  "title": "Cloudflare Pages Article Payload (v1)",
+  "description": "Rich payload contract for Cloudflare Pages publishing workers. Source of truth: visibilio-shared-types src/publishing/cloudflare-schema.ts.",
+  "readOnly": true,
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "content": {
+      "readOnly": true,
+      "type": "object",
+      "properties": {
+        "body_html": {
+          "type": "string"
+        },
+        "excerpt": {
+          "type": "string",
+          "minLength": 50,
+          "maxLength": 500
+        },
+        "reading_time_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "word_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "body_html",
+        "excerpt",
+        "reading_time_minutes",
+        "word_count"
+      ],
+      "additionalProperties": false
+    },
+    "seo": {
+      "readOnly": true,
+      "type": "object",
+      "properties": {
+        "meta_title": {
+          "type": "string",
+          "maxLength": 70
+        },
+        "meta_description": {
+          "type": "string",
+          "minLength": 50,
+          "maxLength": 200
+        },
+        "focus_keywords": {
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "canonical_url": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "meta_title",
+        "meta_description",
+        "canonical_url"
+      ],
+      "additionalProperties": false
+    },
+    "social": {
+      "readOnly": true,
+      "type": "object",
+      "properties": {
+        "og_title": {
+          "type": "string",
+          "maxLength": 70
+        },
+        "og_description": {
+          "type": "string",
+          "minLength": 50,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "og_title",
+        "og_description"
+      ],
+      "additionalProperties": false
+    },
+    "categorization": {
+      "readOnly": true,
+      "type": "object",
+      "properties": {
+        "primary_category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tags": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "content_type": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "primary_category",
+        "tags",
+        "content_type"
+      ],
+      "additionalProperties": false
+    },
+    "author": {
+      "readOnly": true,
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "Person",
+            "Organization"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "type"
+      ],
+      "additionalProperties": false
+    },
+    "images": {
+      "readOnly": true,
+      "type": "object",
+      "properties": {
+        "featured": {
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "string",
+              "minLength": 1
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "png",
+                "jpeg"
+              ]
+            },
+            "width": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "height": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "alt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "data",
+            "format",
+            "width",
+            "height",
+            "alt"
+          ],
+          "additionalProperties": false
+        },
+        "og": {
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "string",
+              "minLength": 1
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "png",
+                "jpeg"
+              ]
+            },
+            "width": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "height": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "alt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "data",
+            "format",
+            "width",
+            "height",
+            "alt"
+          ],
+          "additionalProperties": false
+        },
+        "thumbnail": {
+          "readOnly": true,
+          "type": "object",
+          "properties": {
+            "data": {
+              "type": "string",
+              "minLength": 1
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "png",
+                "jpeg"
+              ]
+            },
+            "width": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "height": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "alt": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "data",
+            "format",
+            "width",
+            "height",
+            "alt"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "featured",
+        "og",
+        "thumbnail"
+      ],
+      "additionalProperties": false
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "published",
+        "draft",
+        "scheduled"
+      ]
+    }
+  },
+  "required": [
+    "title",
+    "slug",
+    "content",
+    "seo",
+    "social",
+    "categorization",
+    "author",
+    "images",
+    "published_at",
+    "updated_at",
+    "status"
+  ],
+  "additionalProperties": false
+}

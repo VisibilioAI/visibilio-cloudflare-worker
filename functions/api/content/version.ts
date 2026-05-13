@@ -1,0 +1,16 @@
+/**
+ * GET /api/content/version — report the template version this deployment
+ * was built from.
+ *
+ * Public endpoint. Lets the Visibilio gateway negotiate behavior per
+ * deployed version (e.g. show "Template out of date" prompts to operators
+ * when major versions drift from the gateway's known good).
+ */
+
+import { jsonResponse, type WorkerEnv } from '../../_lib/auth';
+
+export const onRequestGet: PagesFunction<WorkerEnv> = (ctx) =>
+  jsonResponse({
+    template_version: ctx.env.TEMPLATE_VERSION ?? '1.0.0',
+    schema_id: 'https://visibilio.ai/schemas/cloudflare-article.v1.json',
+  });

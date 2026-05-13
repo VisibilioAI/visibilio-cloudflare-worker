@@ -1,0 +1,26 @@
+# Cloudflare Pages configuration for the Visibilio publishing worker.
+#
+# Customer steps:
+#   1. Set `name` to your project's slug (e.g. "kondevs-content").
+#   2. Set `pages_build_output_dir` if you also build a static site here.
+#   3. Provision the KV namespace bound to ARTICLES (or replace the binding
+#      with D1 / R2 to suit your storage choice — see README §Storage).
+#   4. Set the API_KEY secret via:
+#        wrangler pages secret put API_KEY --project-name <name>
+#
+# This file is intentionally minimal; it is *not* a deployment manifest with
+# secrets. Real secrets are configured per-environment, never committed.
+
+name = "visibilio-cloudflare-worker"
+compatibility_date = "2026-01-15"
+pages_build_output_dir = "public"
+
+# Default KV binding — comment out and switch to D1/R2 if you prefer.
+# Run `wrangler kv:namespace create ARTICLES` once, then paste the id below.
+# [[kv_namespaces]]
+# binding = "ARTICLES"
+# id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+[vars]
+# Non-secret variables. Override per environment in Pages dashboard.
+TEMPLATE_VERSION = "1.0.0"
