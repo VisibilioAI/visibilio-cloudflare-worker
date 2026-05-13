@@ -1,14 +1,21 @@
 /**
- * vitest globalSetup — spin up `wrangler pages dev` once for the whole
- * integration suite, then tear it down at the end.
+ * vitest globalSetup — boots `wrangler pages dev` once for the whole
+ * integration suite, then tears it down at the end.
  *
- * The worker boots on a fixed port (8788). Tests target
- * `http://127.0.0.1:8788` directly. KV is emulated by miniflare in-memory;
- * a per-suite namespace is created via the `--kv ARTICLES` flag, so tests
- * don't need to provision real Cloudflare resources.
+ * Two modes:
  *
- * API_KEY is injected via a temp .dev.vars file (gitignored, written
- * fresh each run). TEMPLATE_VERSION is set via wrangler.toml [vars].
+ *  1. Default (local): spawn `wrangler pages dev` on port 8788, write a
+ *     temp `.dev.vars`, set WORKER_BASE_URL + WORKER_API_KEY in env.
+ *     KV is emulated by miniflare in-memory.
+ *
+ *  2. External (Tier 3 CI): when `WORKER_BASE_URL` is already set in the
+ *     environment (e.g. CI pointing at a real Cloudflare preview deploy),
+ *     skip the spawn entirely. The same test suite runs against the real
+ *     workerd runtime running on Cloudflare's edge. Caller supplies
+ *     WORKER_API_KEY too.
+ *
+ * The two modes share zero infra surface beyond reading env vars — keeping
+ * the smoke job as just `npm run test:integration` with the env pre-set.
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
@@ -20,8 +27,18 @@ const TEST_API_KEY = 'integration-test-api-key';
 const DEV_VARS_PATH = resolve(process.cwd(), '.dev.vars');
 
 let proc: ChildProcess | null = null;
+let externalMode = false;
 
 export async function setup(): Promise<void> {
+  // External mode — CI pointed us at a real preview deployment.
+  if (process.env.WORKER_BASE_URL && process.env.WORKER_API_KEY) {
+    externalMode = true;
+    // Health-check before letting tests run, so flaky deploys fail fast
+    // with a clear message rather than dozens of identical fetch errors.
+    await waitForReady(`${process.env.WORKER_BASE_URL}/api/content/version`, 60000);
+    return;
+  }
+
   writeFileSync(DEV_VARS_PATH, `API_KEY=${TEST_API_KEY}\n`, 'utf8');
 
   proc = spawn(
@@ -59,6 +76,7 @@ export async function setup(): Promise<void> {
 }
 
 export async function teardown(): Promise<void> {
+  if (externalMode) return; // nothing to clean up; preview deploy lives on
   if (proc && !proc.killed) {
     proc.kill('SIGTERM');
     await new Promise((r) => setTimeout(r, 500));
