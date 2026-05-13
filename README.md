@@ -91,7 +91,7 @@ When Visibilio's gateway upgrades to a new major version of the contract, it sur
 
 You can edit anything in this template — it's a starting point, not a framework. The pieces most worth understanding before changing:
 
-- [`functions/_lib/validator.ts`](functions/_lib/validator.ts) — AJV is compiled once per worker isolate; mutating the schema at runtime is unsupported. Re-vendor instead.
+- [`functions/_lib/validator.ts`](functions/_lib/validator.ts) — `@cfworker/json-schema` Validator is built once per worker isolate (Workers runtime blocks AJV's `new Function()` codegen path). Mutating the schema at runtime is unsupported — re-vendor instead.
 - [`functions/_lib/auth.ts`](functions/_lib/auth.ts) — Bearer-token auth with constant-time comparison. If you switch to mTLS or another scheme, keep the same handler interface so the endpoints don't need to change.
 - [`functions/_lib/storage.ts`](functions/_lib/storage.ts) — the only file that knows where articles live.
 - [`functions/api/content/*.ts`](functions/api/content) — handler files. Cloudflare Pages routes them automatically by filename; do not rename without updating `wrangler.toml`.
@@ -99,10 +99,15 @@ You can edit anything in this template — it's a starting point, not a framewor
 ## Testing
 
 ```bash
-npm test           # vitest, all unit tests
-npm run typecheck  # tsc strict, no emit
-npm run lint       # eslint over functions/, tests/, scripts/
+npm test                # vitest, unit tests (Node, fast)
+npm run test:integration # vitest, integration tests inside workerd (slower, real runtime)
+npm run typecheck       # tsc strict, no emit
+npm run lint            # eslint over functions/, tests/, scripts/
 ```
+
+The integration suite spins up `wrangler pages dev` once, then exercises every endpoint over HTTP against the actual Cloudflare Workers runtime (workerd) with miniflare-emulated KV. This catches issues unit tests cannot — Node-only API usage, Pages Functions routing, module loading semantics, Wrangler bundling, KV behavior.
+
+Both suites run in CI on every PR.
 
 Run `npm run dev` to bring up `wrangler pages dev` locally; set `API_KEY` in a `.dev.vars` file (gitignored) before testing publish.
 
