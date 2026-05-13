@@ -14,11 +14,31 @@ describe('GET /api/content/schema', () => {
 });
 
 describe('GET /api/content/version', () => {
-  it('returns template_version and schema_id (public)', async () => {
+  it('returns template_version, schema_id, and capabilities (public)', async () => {
     const res = await fetch(`${BASE()}/api/content/version`);
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { template_version: string; schema_id: string };
+    const body = (await res.json()) as {
+      template_version: string;
+      schema_id: string;
+      capabilities: string[];
+    };
     expect(body.template_version).toBeTruthy();
     expect(body.schema_id).toBe('https://visibilio.ai/schemas/cloudflare-article.v1.json');
+    expect(body.capabilities).toContain('dry_run');
+    expect(body.capabilities).toContain('tags_discovery');
+  });
+});
+
+describe('GET /api/content/tags', () => {
+  it('returns { tags: [] } by default (no fixed taxonomy in template)', async () => {
+    const res = await fetch(`${BASE()}/api/content/tags`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { tags: string[] };
+    expect(Array.isArray(body.tags)).toBe(true);
+  });
+
+  it('is public (no auth required)', async () => {
+    const res = await fetch(`${BASE()}/api/content/tags`);
+    expect(res.status).not.toBe(401);
   });
 });

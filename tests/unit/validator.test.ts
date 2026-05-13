@@ -12,6 +12,14 @@ describe('validateArticle — happy path', () => {
     const schema = getSchema() as { $id: string };
     expect(schema.$id).toBe('https://visibilio.ai/schemas/cloudflare-article.v1.json');
   });
+
+  it('accepts payload with optional extensions object (schema v1.1.0)', () => {
+    const result = validateArticle({
+      ...validArticle,
+      extensions: { premium: true, layout: 'wide', custom_fields: { foo: 'bar' } },
+    });
+    expect(result.ok).toBe(true);
+  });
 });
 
 describe('validateArticle — rejection paths', () => {

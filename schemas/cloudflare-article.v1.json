@@ -290,6 +290,13 @@
         "draft",
         "scheduled"
       ]
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string"
+      },
+      "additionalProperties": {}
     }
   },
   "required": [

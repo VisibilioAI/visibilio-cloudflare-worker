@@ -11,6 +11,10 @@ import { jsonResponse, type WorkerEnv } from '../../_lib/auth';
 
 export const onRequestGet: PagesFunction<WorkerEnv> = (ctx) =>
   jsonResponse({
-    template_version: ctx.env.TEMPLATE_VERSION ?? '1.0.0',
+    template_version: ctx.env.TEMPLATE_VERSION ?? '1.1.0',
     schema_id: 'https://visibilio.ai/schemas/cloudflare-article.v1.json',
+    /** Capability flags read by the Visibilio gateway during channel
+     *  onboarding. Listing a capability here means the corresponding
+     *  endpoint exists on this template version. */
+    capabilities: ['dry_run', 'tags_discovery'],
   });
