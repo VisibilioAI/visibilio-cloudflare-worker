@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 const BASE = () => process.env.WORKER_BASE_URL ?? 'http://127.0.0.1:8788';
+const KEY = () => process.env.WORKER_API_KEY ?? '';
 
 describe('GET /api/content/schema', () => {
   it('returns the vendored JSON Schema (public, no auth required)', async () => {
@@ -40,5 +41,27 @@ describe('GET /api/content/tags', () => {
   it('is public (no auth required)', async () => {
     const res = await fetch(`${BASE()}/api/content/tags`);
     expect(res.status).not.toBe(401);
+  });
+});
+
+describe('GET /api/content/catalog', () => {
+  it('requires a Bearer token (401 without one)', async () => {
+    const res = await fetch(`${BASE()}/api/content/catalog`);
+    expect(res.status).toBe(401);
+  });
+
+  it('returns a catalog shape for an authenticated request', async () => {
+    const res = await fetch(`${BASE()}/api/content/catalog`, {
+      headers: { authorization: `Bearer ${KEY()}` },
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      categories: string[];
+      articles: unknown[];
+      total: number;
+    };
+    expect(Array.isArray(body.categories)).toBe(true);
+    expect(Array.isArray(body.articles)).toBe(true);
+    expect(typeof body.total).toBe('number');
   });
 });
