@@ -26,6 +26,15 @@ export const onRequestOptions: PagesFunction = () =>
     },
   });
 
+// GET on the collection signals "endpoint exists, method not allowed" so
+// connectivity probes (Visibilio Test Connection) don't read 404 as a
+// missing Content API. Matches the kondevs.com production deployment.
+export const onRequestGet: PagesFunction = () =>
+  jsonResponse(
+    { ok: false, error: 'Method Not Allowed', hint: 'POST to publish; GET /api/content/version for capabilities' },
+    { status: 405, headers: { allow: 'POST, OPTIONS' } },
+  );
+
 export const onRequestPost: PagesFunction<WorkerEnv> = async (ctx) => {
   const authError = requireBearer(ctx.request, ctx.env);
   if (authError) return authError;
